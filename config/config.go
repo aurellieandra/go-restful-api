@@ -10,7 +10,7 @@ import (
 
 func DBInit() *gorm.DB {
 	host := "localhost"
-	port := "5433"
+	port := "5432"
 	user := "postgres"
 	password := "admin123"
 	dbname := "orders_by"
@@ -21,6 +21,6 @@ func DBInit() *gorm.DB {
 		panic("Failed to connect to database...")
 	}
 
-	db.AutoMigrate(&structs.Items{}, &structs.Orders{})
+	db.AutoMigrate(&structs.Item{}, &structs.Order{})
 	return db
 }

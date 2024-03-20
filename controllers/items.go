@@ -4,19 +4,18 @@ import (
 	"assignment2/structs"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
-func GetOrders(c *gin.Context, db *gorm.DB) {
+func GetItems(c *gin.Context, db *gorm.DB) {
 	var (
-		orders []structs.Order
+		items []structs.Item
 		result gin.H
 	)
 
-	err := db.Find(&orders).Error
+	err := db.Find(&items).Error
 	if err != nil {
 		result = gin.H{
 			"status": http.StatusBadRequest,
@@ -27,7 +26,7 @@ func GetOrders(c *gin.Context, db *gorm.DB) {
 		return
 	}
 
-	if len(orders) == 0 {
+	if len(items) == 0 {
 		result = gin.H{
 			"status": http.StatusNotFound,
 			"message": "Data Not Found",
@@ -38,59 +37,21 @@ func GetOrders(c *gin.Context, db *gorm.DB) {
 	} else {
 		result = gin.H{
 			"status": http.StatusOK,
-			"message": "Get Orders Successful",
-			"data": orders,
+			"message": "Get Items Successful",
+			"data": items,
 		}
 		c.JSON(http.StatusOK, result)
 		return
 	}
 }
 
-func CreateOrder(c *gin.Context, db *gorm.DB) {
+func CreateItem(c *gin.Context, db *gorm.DB) {
 	var (
-		input map[string]interface{}
+		item structs.Item
 		result gin.H
 	)
 
-	if err := c.BindJSON(&input); err != nil {
-		result = gin.H{
-			"status": http.StatusBadRequest,
-			"message": "Failed to bind input",
-			"data": nil,
-		}
-		c.JSON(http.StatusBadRequest, result)
-		return
-	}
-
-	customerNameInterface, customerNameExists := input["customer_name"]
-	orderedAtInterface, orderedAtExists := input["ordered_at"]
-	
-	if !customerNameExists || !orderedAtExists {
-		result = gin.H{
-			"status":  http.StatusBadRequest,
-			"message": "Missing required fields",
-			"data":    nil,
-		}
-		c.JSON(http.StatusBadRequest, result)
-		return
-	}
-	var customerName string
-	if customerNameInterface != nil {
-		customerName, _ = customerNameInterface.(string)
-	}
-	var orderedAt time.Time
-	if orderedAtInterface != nil {
-		orderedAt, _ = time.Parse("2006-01-02 03:04:05", orderedAtInterface.(string))
-		// orderedAt = theTime.Format(time.RFC3339Nano)
-	}
-
-	order := structs.Order{
-		Customer_Name: customerName,
-		Ordered_At: orderedAt,
-	}
-	
-	// add order data
-	if err := db.Create(&order).Error; err != nil {
+	if err := c.Bind(&item); err != nil {
 		result = gin.H{
 			"status": http.StatusBadRequest,
 			"message": err.Error(),
@@ -100,46 +61,28 @@ func CreateOrder(c *gin.Context, db *gorm.DB) {
 		return
 	}
 
-	// add items data
-	if inputItems, ok := input["items"].([]interface{}); ok {
-		for _, item := range inputItems {
-			if itemMap, ok := item.(map[string]interface{}); ok {
-				itemCode, _ := itemMap["item_code"].(string)
-				description, _ := itemMap["description"].(string)
-				quantity, _ := strconv.ParseInt(itemMap["quantity"].(string), 10, 64)
-
-				items := structs.Item {
-					Item_Code: itemCode,
-					Description: description,
-					Quantity: quantity,
-					Order_Id: uint(order.Order_Id),
-				}
-
-
-				if err := db.Create(&items).Error; err != nil {
-					result = gin.H{
-						"status": http.StatusBadRequest,
-						"message": err.Error(),
-						"data": nil,
-					}
-					c.JSON(http.StatusBadRequest, result)
-					return
-				}
-			}
+	err := db.Create(&item).Error
+	if err != nil {
+		result = gin.H{
+			"status": http.StatusBadRequest,
+			"message": err.Error(),
+			"data": nil,
 		}
+		c.JSON(http.StatusBadRequest, result)
+		return
+	} else {
+		result = gin.H{
+			"status": http.StatusOK,
+			"message": "Create Item Successful",
+			"data": item,
+		}
+		c.JSON(http.StatusOK, result)
 	}
-
-	result = gin.H{
-		"status": http.StatusOK,
-		"message": "Create Order Successful",
-		"data": order,
-	}
-	c.JSON(http.StatusOK, result)
 }
 
-func GetOrder(c *gin.Context, db *gorm.DB) {
+func GetItem(c *gin.Context, db *gorm.DB) {
 	var (
-		order structs.Order
+		item structs.Item
 		result gin.H
 	)
 
@@ -154,7 +97,7 @@ func GetOrder(c *gin.Context, db *gorm.DB) {
 		return
 	}
 
-	err = db.Table("orders").Where("order_id = $1", id).Find(&order).Error
+	err = db.Table("items").Where("item_id = $1", id).Find(&item).Error
 	if err != nil {
 		result = gin.H{
 			"status": http.StatusNotFound,
@@ -166,15 +109,15 @@ func GetOrder(c *gin.Context, db *gorm.DB) {
 	} else {
 		result = gin.H{
 			"status": http.StatusOK,
-			"message": "Get Order Successful",
-			"data": order,
+			"message": "Get Item Successful",
+			"data": item,
 		}
 		c.JSON(http.StatusOK, result)
 		return
 	}
 }
 
-func UpdateOrder(c *gin.Context, db *gorm.DB) {
+func UpdateItem(c *gin.Context, db *gorm.DB) {
 	var (
 		input map[string]interface{}
 		result gin.H
@@ -201,8 +144,8 @@ func UpdateOrder(c *gin.Context, db *gorm.DB) {
 		return
 	}
 
-	order := db.Table("orders").Where("order_id = ?", id)
-	if err := order.Updates(input).Error; err != nil {
+	item := db.Table("items").Where("item_id = ?", id)
+	if err := item.Updates(input).Error; err != nil {
 		result = gin.H{
 			"status":  http.StatusNotFound,
 			"message": "Data Not Found",
@@ -212,8 +155,8 @@ func UpdateOrder(c *gin.Context, db *gorm.DB) {
 		return
 	}
 
-	var updatedOrder structs.Order
-	if err := db.First(&updatedOrder, id).Error; err != nil {
+	var updatedItem structs.Item
+	if err := db.First(&updatedItem, id).Error; err != nil {
 		result = gin.H{
 			"status":  http.StatusNotFound,
 			"message": "Data Not Found",
@@ -224,16 +167,16 @@ func UpdateOrder(c *gin.Context, db *gorm.DB) {
 	} else {
 		result = gin.H{
 			"status":  http.StatusOK,
-			"message": "Update Order Successful",
-			"data":    updatedOrder, 
+			"message": "Update Item Successful",
+			"data":    updatedItem, 
 		}
 		c.JSON(http.StatusOK, result)
 	}
 }
 
-func DeleteOrder(c *gin.Context, db *gorm.DB) {
+func DeleteItem(c *gin.Context, db *gorm.DB) {
 	var (
-		order structs.Order
+		item structs.Item
 		result gin.H
 	)
 
@@ -248,7 +191,7 @@ func DeleteOrder(c *gin.Context, db *gorm.DB) {
 		return
 	}
 
-	err = db.Table("orders").Where("order_id = $1", id).Delete(&order).Error
+	err = db.Table("items").Where("item_id = $1", id).Delete(&item).Error
 	if err != nil {
 		result = gin.H{
 			"status": http.StatusNotFound,
@@ -260,7 +203,7 @@ func DeleteOrder(c *gin.Context, db *gorm.DB) {
 	} else {
 		result = gin.H{
 			"status": http.StatusOK,
-			"message": "Delete Order Successful",
+			"message": "Delete Item Successful",
 			"data": nil,
 		}
 		c.JSON(http.StatusOK, result)
