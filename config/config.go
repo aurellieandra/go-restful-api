@@ -10,7 +10,7 @@ import (
 
 func DBInit() *gorm.DB {
 	host := "localhost"
-	port := "5432"
+	port := "5433"
 	user := "postgres"
 	password := "admin123"
 	dbname := "orders_by"

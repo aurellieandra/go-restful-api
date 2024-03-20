@@ -16,5 +16,5 @@ type Item struct {
 	Description string `json:"description" gorm:"column:description"`
 	Quantity    int64  `json:"quantity" gorm:"column:quantity"`
 
-	Order_Id    uint   `json:"order_id" gorm:"foreignKey:Order_Id;references:Order_Id"`
+	Order_Id uint `json:"order_id" gorm:"foreignKey:order_id;references:order_id"`
 }
